@@ -4,6 +4,7 @@ const ctx = canvas.getContext('2d');
 const GRAVITY = 0.3;
 const GOO_SPEED = 1.5;
 const WINS_NEEDED = 5;
+const GOO_RADIUS = 10.4; // 30% bigger than original 8px (8 * 1.3 = 10.4)
 
 // Game state
 let gameState = 'splash';
@@ -225,15 +226,15 @@ function drawSplashScreen() {
     ctx.font = '20px "Press Start 2P", cursive';
     ctx.fillText('Enhanced Edition', canvas.width / 2, 160);
     
-    // Draw bouncing Kiro sprites (400% bigger = 320px)
-    const kiroSize = 320; // 80 * 4 = 320
+    // Draw bouncing Kiro sprites (640% bigger = 512px, which is 60% bigger than 320px)
+    const kiroSize = 512; // 320 * 1.6 = 512px
     const kiroBaseY = canvas.height / 2;
     
     // Position left Kiro so half is off screen to the left
-    const leftKiroX = kiroSize / 2; // Half the sprite width from left edge
+    const leftKiroX = 0; // Centered at left edge, so half is off screen
     
     // Position right Kiro so half is off screen to the right
-    const rightKiroX = canvas.width - kiroSize / 2; // Half the sprite width from right edge
+    const rightKiroX = canvas.width; // Centered at right edge, so half is off screen
     
     // Left Kiro (facing right, half off screen to the left)
     if (kiroLogo.complete && kiroLogo.naturalWidth > 0) {
@@ -592,6 +593,40 @@ function initializePlayers() {
     ];
 }
 
+// Update button visibility based on game mode and state
+function updateButtonVisibility() {
+    const p1ThrowBtn = document.getElementById('p1-throw-btn');
+    const p2ThrowBtn = document.getElementById('p2-throw-btn');
+    const spaceBtn = document.getElementById('space-btn');
+    const mode1Btn = document.getElementById('mode1-btn');
+    const mode2Btn = document.getElementById('mode2-btn');
+    
+    // Hide mode buttons once game starts
+    if (gameState === 'splash' || gameState === 'modeSelect') {
+        mode1Btn.style.display = 'block';
+        mode2Btn.style.display = 'block';
+    } else {
+        mode1Btn.style.display = 'none';
+        mode2Btn.style.display = 'none';
+    }
+    
+    // Show/hide throw buttons based on game mode
+    if (gameMode === 'rapidFire' && (gameState === 'playerTurn' || gameState === 'playing')) {
+        p1ThrowBtn.style.display = 'flex';
+        p2ThrowBtn.style.display = 'flex';
+    } else {
+        p1ThrowBtn.style.display = 'none';
+        p2ThrowBtn.style.display = 'none';
+    }
+    
+    // Show space button for turn-based mode and menu screens
+    if (gameMode === 'turnBased' || gameState === 'splash' || gameState === 'modeSelect' || gameState === 'start' || gameState === 'gameOver') {
+        spaceBtn.style.display = 'flex';
+    } else if (gameMode === 'rapidFire' && (gameState === 'playerTurn' || gameState === 'playing')) {
+        spaceBtn.style.display = 'none';
+    }
+}
+
 // Initialize game
 function initGame() {
     // Select new map scale at start of each round
@@ -606,6 +641,9 @@ function initGame() {
     playerSplatter = null;
     trailSegments = []; // Clear trails for new round
     gameState = 'playerTurn';
+    
+    // Update button visibility
+    updateButtonVisibility();
     
     // Start game music if not already playing
     if (!gameMusic) {
@@ -645,6 +683,9 @@ function initRapidFireMode() {
     playerSplatter = null;
     trailSegments = []; // Clear trails for new round
     gameState = 'playerTurn';
+    
+    // Update button visibility
+    updateButtonVisibility();
     
     // Start game music if not already playing
     if (!gameMusic) {
@@ -1209,13 +1250,13 @@ function drawGoo() {
     
     ctx.fillStyle = '#00ff00';
     ctx.beginPath();
-    ctx.arc(goo.x, goo.y, 8, 0, Math.PI * 2);
+    ctx.arc(goo.x, goo.y, GOO_RADIUS, 0, Math.PI * 2);
     ctx.fill();
     
-    // Goo trail
+    // Goo trail (slightly smaller than main blob)
     ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
     ctx.beginPath();
-    ctx.arc(goo.x - goo.vx * 2, goo.y - goo.vy * 2, 6, 0, Math.PI * 2);
+    ctx.arc(goo.x - goo.vx * 2, goo.y - goo.vy * 2, GOO_RADIUS * 0.75, 0, Math.PI * 2);
     ctx.fill();
 }
 
@@ -1312,10 +1353,11 @@ function updateGoo() {
             const playerX = player.x + offsetX;
             const playerY = player.y + offsetY;
             
-            if (goo.x > playerX - player.width / 2 && 
-                goo.x < playerX + player.width / 2 &&
-                goo.y > playerY && 
-                goo.y < playerY + player.height) {
+            // Expanded hitbox using GOO_RADIUS for easier hits
+            if (goo.x + GOO_RADIUS > playerX - player.width / 2 && 
+                goo.x - GOO_RADIUS < playerX + player.width / 2 &&
+                goo.y + GOO_RADIUS > playerY && 
+                goo.y - GOO_RADIUS < playerY + player.height) {
                 
                 // Hit!
                 if (currentPlayer === 1) {
@@ -1585,10 +1627,11 @@ function updateRapidFireProjectiles() {
                 const playerX = player.x + offsetX;
                 const playerY = player.y + offsetY;
                 
-                if (projectile.x > playerX - player.width / 2 && 
-                    projectile.x < playerX + player.width / 2 &&
-                    projectile.y > playerY && 
-                    projectile.y < playerY + player.height) {
+                // Expanded hitbox using GOO_RADIUS for easier hits
+                if (projectile.x + GOO_RADIUS > playerX - player.width / 2 && 
+                    projectile.x - GOO_RADIUS < playerX + player.width / 2 &&
+                    projectile.y + GOO_RADIUS > playerY && 
+                    projectile.y - GOO_RADIUS < playerY + player.height) {
                     
                     // Hit! Award point to projectile owner (not hit player)
                     if (projectile.owner === 1) {
@@ -1671,13 +1714,13 @@ function drawRapidFireProjectiles() {
     rapidFireState.projectiles.forEach(projectile => {
         ctx.fillStyle = '#00ff00';
         ctx.beginPath();
-        ctx.arc(projectile.x, projectile.y, 8, 0, Math.PI * 2);
+        ctx.arc(projectile.x, projectile.y, GOO_RADIUS, 0, Math.PI * 2);
         ctx.fill();
         
-        // Goo trail
+        // Goo trail (slightly smaller than main blob)
         ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
         ctx.beginPath();
-        ctx.arc(projectile.x - projectile.vx * 2, projectile.y - projectile.vy * 2, 6, 0, Math.PI * 2);
+        ctx.arc(projectile.x - projectile.vx * 2, projectile.y - projectile.vy * 2, GOO_RADIUS * 0.75, 0, Math.PI * 2);
         ctx.fill();
     });
 }
@@ -1749,12 +1792,14 @@ document.addEventListener('keydown', (e) => {
             playSelectSound(); // Play select sound
             // Don't cleanup splash yet - keep theme music playing
             gameState = 'modeSelect';
+            updateButtonVisibility();
         } else if (gameState === 'start') {
             if (gameMode === 'rapidFire') {
                 initRapidFireMode();
             } else {
                 initGame();
             }
+            updateButtonVisibility();
         } else if (gameState === 'gameOver') {
             player1Score = 0;
             player2Score = 0;
@@ -1766,6 +1811,7 @@ document.addEventListener('keydown', (e) => {
             } else {
                 initGame();
             }
+            updateButtonVisibility();
         } else if (gameState === 'playerTurn') {
             if (gameMode === 'turnBased') {
                 if (selectingAngle) {
@@ -1797,6 +1843,7 @@ document.addEventListener('keydown', (e) => {
             generateBuildings();
             initializePlayers();
             gameState = 'start';
+            updateButtonVisibility();
         } else if (e.code === 'Digit2' || e.code === 'Numpad2') {
             e.preventDefault();
             playSelectSound(); // Play select sound
@@ -1806,6 +1853,7 @@ document.addEventListener('keydown', (e) => {
             generateBuildings();
             initializePlayers();
             gameState = 'start';
+            updateButtonVisibility();
         }
     }
 });
@@ -1841,6 +1889,9 @@ canvas.addEventListener('click', () => {
 
 // Initialize splash screen
 initSplash();
+
+// Set initial button visibility
+updateButtonVisibility();
 
 // Add a one-time listener for any user interaction to start theme music
 let musicStarted = false;
@@ -1889,6 +1940,7 @@ const handleMode1 = (e) => {
         generateBuildings();
         initializePlayers();
         gameState = 'start';
+        updateButtonVisibility();
     }
 };
 
@@ -1902,6 +1954,7 @@ const handleMode2 = (e) => {
         generateBuildings();
         initializePlayers();
         gameState = 'start';
+        updateButtonVisibility();
     }
 };
 
