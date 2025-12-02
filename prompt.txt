@@ -1,0 +1,33 @@
+
+"I want to build a Gorilla Kiro game. Please create a basic working version with:
+- HTML5 canvas for rendering
+- Use kiro-logo.png as a character
+- Each game starts with two players on opposite sides of a randomly generated map
+- The map consists of the Kiro players standing on buildings of various height
+- The characters do not move, they simply take turns throwing goo blobs at each other
+- The mechanism for throwing is two meters, one for angle and one for force
+- The angle meter value bounces between 0 and 90 degrees
+- The force meter value bounces between 0 and 100 percent
+- The goo blobs thrown move at reasonable speed (1.5 pixels per frame)
+- Basic collision detection
+- A score counter
+- Proper game state management with three states: 'start', 'playing', 'gameOver' and 'playerTurn'
+- Start screen that shows 'Press SPACE or click to start!' 
+- Game begins when player one presses SPACE
+- Add a restart functionality
+- Proper game timing with slower obstacle spawning - every 180 frames
+- Game logic only updates during 'playing' state
+- The game ends once a player has hit the other player with goo 5 times
+- After each goo hit, the map resets to a new, randomly generated map
+
+Make sure the physics feel responsive and give players enough time to react. The game should start with a clear start screen and begin playing immediately when SPACE is pressed. Keep it simple and playable. Use vanilla JavaScript and make it work in a browser."
+
+
+Help me add the following features to the game:
+
+- An intro splash screen - when the game starts, it should show the title of the game toward the top, and two Kiros, one on each side of the screen facing each other, and bouncing slightly.  We should also add them music to the splash screen.  Use file theme.mp3.  Have text stating "Press Space to Beigin"
+- Add a trail to the thrown blob that fades quickly over time
+- After a player is struck by a blob, after 3 seconds, fade in a splash screen that displays which player was hit and the current scores.  
+- If a player hits a building, it should destroy a small chunk of the building so that the building might not be in the way for future throws
+- The scale of the map should vary each round.  Sometimes the players should appear closer together, sometimes very far apart.
+- Add a second game mode.  The previous game mode is called "Turn Based".  This new mode will be called "Rapid Fire".  In this mode, players one and two do not take turns, they can throw at the the same time, using the left and right shift keys respectively.  Each player can have up to 2 blobs in the air at a time.  The first blob that hits a player still wins a round.
