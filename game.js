@@ -1861,25 +1861,25 @@ const startThemeMusic = () => {
 document.addEventListener('click', startThemeMusic, { once: false });
 document.addEventListener('keydown', startThemeMusic, { once: false });
 
-// Touch button event listeners
-document.getElementById('p1-throw-btn').addEventListener('click', (e) => {
+// Touch button event listeners - handle both click and touch events
+const handleP1Throw = (e) => {
     e.preventDefault();
     handleRapidFireInput(1);
-});
+};
 
-document.getElementById('p2-throw-btn').addEventListener('click', (e) => {
+const handleP2Throw = (e) => {
     e.preventDefault();
     handleRapidFireInput(2);
-});
+};
 
-document.getElementById('space-btn').addEventListener('click', (e) => {
+const handleSpaceBtn = (e) => {
     e.preventDefault();
     // Simulate space key press
     const spaceEvent = new KeyboardEvent('keydown', { code: 'Space' });
     document.dispatchEvent(spaceEvent);
-});
+};
 
-document.getElementById('mode1-btn').addEventListener('click', (e) => {
+const handleMode1 = (e) => {
     e.preventDefault();
     if (gameState === 'modeSelect') {
         playSelectSound();
@@ -1890,9 +1890,9 @@ document.getElementById('mode1-btn').addEventListener('click', (e) => {
         initializePlayers();
         gameState = 'start';
     }
-});
+};
 
-document.getElementById('mode2-btn').addEventListener('click', (e) => {
+const handleMode2 = (e) => {
     e.preventDefault();
     if (gameState === 'modeSelect') {
         playSelectSound();
@@ -1903,9 +1903,25 @@ document.getElementById('mode2-btn').addEventListener('click', (e) => {
         initializePlayers();
         gameState = 'start';
     }
-});
+};
 
-// Prevent touch button text selection
+// Add both click and touchend listeners for better mobile support
+document.getElementById('p1-throw-btn').addEventListener('click', handleP1Throw);
+document.getElementById('p1-throw-btn').addEventListener('touchend', handleP1Throw);
+
+document.getElementById('p2-throw-btn').addEventListener('click', handleP2Throw);
+document.getElementById('p2-throw-btn').addEventListener('touchend', handleP2Throw);
+
+document.getElementById('space-btn').addEventListener('click', handleSpaceBtn);
+document.getElementById('space-btn').addEventListener('touchend', handleSpaceBtn);
+
+document.getElementById('mode1-btn').addEventListener('click', handleMode1);
+document.getElementById('mode1-btn').addEventListener('touchend', handleMode1);
+
+document.getElementById('mode2-btn').addEventListener('click', handleMode2);
+document.getElementById('mode2-btn').addEventListener('touchend', handleMode2);
+
+// Prevent default touch behavior to avoid double-firing
 document.querySelectorAll('button').forEach(btn => {
     btn.addEventListener('touchstart', (e) => {
         e.preventDefault();
