@@ -1480,6 +1480,8 @@ function gameLoop() {
     } else if (gameState === 'playing') {
         updateTrails();
         if (gameMode === 'rapidFire') {
+            // In rapid fire mode, keep updating meters even while projectiles are flying
+            updateRapidFireMeters();
             updateRapidFireProjectiles();
         } else {
             updateGoo();
@@ -1609,8 +1611,12 @@ function updateRapidFireProjectiles() {
                         opacity: 1.0
                     };
                     
-                    // Trigger hit feedback screen with 3-second delay
-                    triggerHitFeedback(playerIndex);
+                    // In rapid fire mode, check if game is over but don't pause
+                    if (player1Score >= WINS_NEEDED || player2Score >= WINS_NEEDED) {
+                        // Trigger hit feedback screen for game over
+                        triggerHitFeedback(playerIndex);
+                    }
+                    // If not game over, just continue playing in rapid fire mode
                     
                     // Mark projectile for removal
                     projectilesToRemove.push(i);
@@ -1682,7 +1688,8 @@ function drawRapidFireProjectiles() {
 
 // Handle Rapid Fire input for player-specific throws
 function handleRapidFireInput(playerNum) {
-    if (gameState !== 'playerTurn' || gameMode !== 'rapidFire') return;
+    // Allow input in both playerTurn and playing states for rapid fire
+    if ((gameState !== 'playerTurn' && gameState !== 'playing') || gameMode !== 'rapidFire') return;
     
     const playerState = playerNum === 1 ? rapidFireState.player1 : rapidFireState.player2;
     const player = players[playerNum - 1];
@@ -1857,6 +1864,57 @@ const startThemeMusic = () => {
 // Listen for any interaction to start music
 document.addEventListener('click', startThemeMusic, { once: false });
 document.addEventListener('keydown', startThemeMusic, { once: false });
+
+// Touch button event listeners
+document.getElementById('p1-throw-btn').addEventListener('click', (e) => {
+    e.preventDefault();
+    handleRapidFireInput(1);
+});
+
+document.getElementById('p2-throw-btn').addEventListener('click', (e) => {
+    e.preventDefault();
+    handleRapidFireInput(2);
+});
+
+document.getElementById('space-btn').addEventListener('click', (e) => {
+    e.preventDefault();
+    // Simulate space key press
+    const spaceEvent = new KeyboardEvent('keydown', { code: 'Space' });
+    document.dispatchEvent(spaceEvent);
+});
+
+document.getElementById('mode1-btn').addEventListener('click', (e) => {
+    e.preventDefault();
+    if (gameState === 'modeSelect') {
+        playSelectSound();
+        cleanupSplash();
+        gameMode = 'turnBased';
+        selectMapScale();
+        generateBuildings();
+        initializePlayers();
+        gameState = 'start';
+    }
+});
+
+document.getElementById('mode2-btn').addEventListener('click', (e) => {
+    e.preventDefault();
+    if (gameState === 'modeSelect') {
+        playSelectSound();
+        cleanupSplash();
+        gameMode = 'rapidFire';
+        selectMapScale();
+        generateBuildings();
+        initializePlayers();
+        gameState = 'start';
+    }
+});
+
+// Prevent touch button text selection
+document.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+    });
+});
 
 // Start game loop
 gameLoop();

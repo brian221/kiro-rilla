@@ -16,6 +16,36 @@
             <span id="player1-score">Player 1: 0</span>
             <span id="player2-score">Player 2: 0</span>
         </div>
+        
+        <!-- Touch Controls -->
+        <div id="touch-controls">
+            <div class="control-section player1-controls">
+                <div class="player-label">Player 1</div>
+                <button id="p1-throw-btn" class="throw-btn p1-btn">
+                    <span class="btn-label">THROW</span>
+                    <span class="btn-hint">Left Shift</span>
+                </button>
+            </div>
+            
+            <div class="control-section center-controls">
+                <button id="space-btn" class="action-btn">
+                    <span class="btn-label">START / SELECT</span>
+                    <span class="btn-hint">Space</span>
+                </button>
+                <div class="mode-buttons">
+                    <button id="mode1-btn" class="mode-btn">Mode 1</button>
+                    <button id="mode2-btn" class="mode-btn">Mode 2</button>
+                </div>
+            </div>
+            
+            <div class="control-section player2-controls">
+                <div class="player-label">Player 2</div>
+                <button id="p2-throw-btn" class="throw-btn p2-btn">
+                    <span class="btn-label">THROW</span>
+                    <span class="btn-hint">Right Shift</span>
+                </button>
+            </div>
+        </div>
     </div>
     <script src="game.js"></script>
 </body>
