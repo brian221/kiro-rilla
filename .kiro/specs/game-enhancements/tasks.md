@@ -10,7 +10,7 @@
   - Handle Space key input to stop music and transition to mode select
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6_
 
-- [ ] 2. Add mode selection screen
+- [x] 2. Add mode selection screen
   - Create 'modeSelect' game state
   - Display "Turn Based" and "Rapid Fire" mode options
   - Handle keyboard input (1 for Turn Based, 2 for Rapid Fire)
@@ -18,7 +18,7 @@
   - Transition to appropriate game initialization based on mode
   - _Requirements: 6.1_
 
-- [ ] 3. Implement projectile trail effect system
+- [x] 3. Implement projectile trail effect system
   - Create trailSegments array to store active trail segments
   - Add trail segment data structure with x, y, opacity, age, maxAge
   - Implement addTrailSegment() function to create segments at projectile position
@@ -28,7 +28,7 @@
   - Integrate trail rendering into main game loop
   - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-- [ ] 4. Implement hit feedback screen
+- [x] 4. Implement hit feedback screen
   - Add 'hitFeedback' game state
   - Create hitFeedback state object with active, hitPlayer, fadeProgress, displayTime, scores
   - Implement triggerHitFeedback() function with 3-second setTimeout delay
@@ -38,7 +38,7 @@
   - Transition to next round or game over after feedback display completes
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [ ] 5. Implement destructible buildings
+- [x] 5. Implement destructible buildings
   - Add destroyedChunks array to building data structure
   - Implement destroyBuildingChunk() function to add chunk at impact point
   - Create chunk with dimensions (30-50 pixels width/height) centered on impact
@@ -48,7 +48,7 @@
   - Add particle effects for building destruction impacts
   - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-- [ ] 6. Implement variable map scaling
+- [x] 6. Implement variable map scaling
   - Create mapScale configuration object with factor, buildingHeightMin, buildingHeightMax, buildingWidth, playerDistance
   - Implement selectMapScale() function to randomly choose scale factor (0.5 to 1.5)
   - Modify generateBuildings() to accept scale parameter and adjust dimensions
@@ -58,7 +58,7 @@
   - Call selectMapScale() at start of each new round
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-- [ ] 7. Implement Rapid Fire mode core mechanics
+- [x] 7. Implement Rapid Fire mode core mechanics
   - Create rapidFireState object with player1 and player2 sub-objects
   - Add angle, force, angleDirection, forceDirection, selectingAngle, activeProjectiles to each player state
   - Modify projectile data structure to include owner property (1 or 2)
@@ -68,7 +68,7 @@
   - Modify game loop to call updateRapidFireMeters() when in Rapid Fire mode
   - _Requirements: 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8_
 
-- [ ] 8. Implement Rapid Fire input handling
+- [x] 8. Implement Rapid Fire input handling
   - Add keyboard event listeners for ShiftLeft and ShiftRight
   - Implement handleRapidFireInput() function to process player-specific throws
   - Check activeProjectiles count before allowing throw (must be < 2)
@@ -78,7 +78,7 @@
   - Toggle player's selectingAngle state on each key press
   - _Requirements: 6.2, 6.3, 6.4, 6.5, 6.8_
 
-- [ ] 9. Implement Rapid Fire collision and scoring
+- [x] 9. Implement Rapid Fire collision and scoring
   - Create updateRapidFireProjectiles() function to update all projectiles in array
   - Modify collision detection to check projectile owner vs hit player
   - Award point to projectile owner (not hit player)
@@ -88,7 +88,7 @@
   - Remove projectile from array on collision or out of bounds
   - _Requirements: 6.6_
 
-- [ ] 10. Implement Rapid Fire UI rendering
+- [x] 10. Implement Rapid Fire UI rendering
   - Create drawRapidFireUI() function to render both players' meters
   - Position Player 1 meters on left side of screen
   - Position Player 2 meters on right side of screen
@@ -109,7 +109,16 @@
   - Verify building destruction persists across rounds appropriately
   - _Requirements: All_
 
-- [ ] 12. Checkpoint - Manual testing
+- [x] 12. Update audio
+  - When a game starts, play either audio/in_game_1.mp3 or audio/in_game_2.mp3 instead of the theme
+  - play sound audio/hit_effect.wave when the blob hits a player or building
+  - play sound audio/select.wave when a the splash screen space bar is hit or game mode is selected
+  - stop music and play audio/winner.wave when a game is won
+
+- [x] 12b. Player Bounce
+  - player characters should bounce around slightly, as if bouncing to music, both up and down and side to side
+  
+- [ ] 13. Checkpoint - Manual testing
   - Test all features manually in the browser
   - Verify all game states work correctly
   - Ask the user if any issues arise
