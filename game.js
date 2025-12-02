@@ -107,16 +107,21 @@ function loadThemeMusic() {
     
     splashState.themeAudio.addEventListener('canplaythrough', () => {
         splashState.musicLoaded = true;
-        // Auto-play music when loaded (may require user interaction in some browsers)
-        splashState.themeAudio.play().catch(err => {
-            console.log('Audio autoplay prevented by browser:', err);
-        });
+        // Try to auto-play music when loaded
+        if (gameState === 'splash') {
+            splashState.themeAudio.play().catch(err => {
+                console.log('Audio autoplay prevented by browser, will play on user interaction:', err);
+            });
+        }
     });
     
     splashState.themeAudio.addEventListener('error', (e) => {
         console.log('Failed to load theme music:', e);
         splashState.musicLoaded = false;
     });
+    
+    // Start loading the audio
+    splashState.themeAudio.load();
 }
 
 // Load game music (randomly select between in_game_1 and in_game_2)
@@ -209,24 +214,28 @@ function drawSplashScreen() {
     ctx.fillStyle = '#87CEEB';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Draw game title at top
+    // Draw game title at top with fun font
     ctx.fillStyle = '#790ECB';
-    ctx.font = 'bold 72px Arial';
+    ctx.font = 'bold 84px "Bangers", cursive';
     ctx.textAlign = 'center';
-    ctx.fillText('GORILLA KIRO', canvas.width / 2, 120);
+    ctx.fillText('KIRO-RILLA', canvas.width / 2, 120);
     
-    // Draw subtitle
+    // Draw subtitle with retro font
     ctx.fillStyle = 'white';
-    ctx.font = '24px Arial';
+    ctx.font = '20px "Press Start 2P", cursive';
     ctx.fillText('Enhanced Edition', canvas.width / 2, 160);
     
-    // Draw bouncing Kiro sprites
-    const leftKiroX = canvas.width / 4;
-    const rightKiroX = (canvas.width * 3) / 4;
+    // Draw bouncing Kiro sprites (400% bigger = 320px)
+    const kiroSize = 320; // 80 * 4 = 320
     const kiroBaseY = canvas.height / 2;
-    const kiroSize = 80;
     
-    // Left Kiro (facing right)
+    // Position left Kiro so half is off screen to the left
+    const leftKiroX = kiroSize / 2; // Half the sprite width from left edge
+    
+    // Position right Kiro so half is off screen to the right
+    const rightKiroX = canvas.width - kiroSize / 2; // Half the sprite width from right edge
+    
+    // Left Kiro (facing right, half off screen to the left)
     if (kiroLogo.complete && kiroLogo.naturalWidth > 0) {
         ctx.save();
         ctx.translate(leftKiroX, kiroBaseY + splashState.leftKiroY);
@@ -238,7 +247,7 @@ function drawSplashScreen() {
         ctx.fillRect(leftKiroX - kiroSize / 2, kiroBaseY + splashState.leftKiroY - kiroSize / 2, kiroSize, kiroSize);
     }
     
-    // Right Kiro (facing left - flipped)
+    // Right Kiro (facing left - flipped, half off screen to the right)
     if (kiroLogo.complete && kiroLogo.naturalWidth > 0) {
         ctx.save();
         ctx.translate(rightKiroX, kiroBaseY + splashState.rightKiroY);
@@ -263,7 +272,7 @@ function drawSplashScreen() {
     ctx.globalAlpha = 1.0;
 }
 
-// Cleanup splash screen
+// Cleanup splash screen (stops theme music when leaving splash/mode select)
 function cleanupSplash() {
     if (splashState.themeAudio) {
         splashState.themeAudio.pause();
@@ -1382,12 +1391,12 @@ function drawStartScreen() {
     ctx.strokeRect(canvas.width / 2 - 250, canvas.height / 2 - 100, 500, 200);
     
     ctx.fillStyle = '#790ECB';
-    ctx.font = 'bold 48px Arial';
+    ctx.font = 'bold 56px "Bangers", cursive';
     ctx.textAlign = 'center';
-    ctx.fillText('GORILLA KIRO', canvas.width / 2, canvas.height / 2 - 40);
+    ctx.fillText('KIRO-RILLA', canvas.width / 2, canvas.height / 2 - 40);
     
     ctx.fillStyle = 'white';
-    ctx.font = '24px Arial';
+    ctx.font = '20px "Righteous", cursive';
     ctx.fillText('Press SPACE or click to start!', canvas.width / 2, canvas.height / 2 + 10);
     
     ctx.font = '16px Arial';
@@ -1483,11 +1492,25 @@ function gameLoop() {
     if (gameState === 'splash') {
         updateSplashAnimation();
         drawSplashScreen();
+        
+        // Try to play theme music if it's loaded but not playing
+        if (splashState.themeAudio && splashState.musicLoaded && splashState.themeAudio.paused) {
+            splashState.themeAudio.play().catch(err => {
+                // Silently fail - will retry on user interaction
+            });
+        }
     }
     
     // Draw mode select screen
     if (gameState === 'modeSelect') {
         drawModeSelectScreen();
+        
+        // Keep theme music playing on mode select screen
+        if (splashState.themeAudio && splashState.musicLoaded && splashState.themeAudio.paused) {
+            splashState.themeAudio.play().catch(err => {
+                // Silently fail
+            });
+        }
     }
     
     // Draw overlays
@@ -1714,8 +1737,14 @@ document.addEventListener('keydown', (e) => {
         e.preventDefault();
         
         if (gameState === 'splash') {
+            // Try to play theme music on user interaction if not already playing
+            if (splashState.themeAudio && splashState.themeAudio.paused) {
+                splashState.themeAudio.play().catch(err => {
+                    console.log('Failed to play theme music:', err);
+                });
+            }
             playSelectSound(); // Play select sound
-            cleanupSplash();
+            // Don't cleanup splash yet - keep theme music playing
             gameState = 'modeSelect';
         } else if (gameState === 'start') {
             if (gameMode === 'rapidFire') {
@@ -1759,6 +1788,7 @@ document.addEventListener('keydown', (e) => {
         if (e.code === 'Digit1' || e.code === 'Numpad1') {
             e.preventDefault();
             playSelectSound(); // Play select sound
+            cleanupSplash(); // Stop theme music when starting game
             gameMode = 'turnBased';
             selectMapScale();
             generateBuildings();
@@ -1767,6 +1797,7 @@ document.addEventListener('keydown', (e) => {
         } else if (e.code === 'Digit2' || e.code === 'Numpad2') {
             e.preventDefault();
             playSelectSound(); // Play select sound
+            cleanupSplash(); // Stop theme music when starting game
             gameMode = 'rapidFire';
             selectMapScale();
             generateBuildings();
@@ -1777,6 +1808,15 @@ document.addEventListener('keydown', (e) => {
 });
 
 canvas.addEventListener('click', () => {
+    // Try to play theme music on first click if on splash or mode select screen
+    if (gameState === 'splash' || gameState === 'modeSelect') {
+        if (splashState.themeAudio && splashState.themeAudio.paused) {
+            splashState.themeAudio.play().catch(err => {
+                console.log('Failed to play theme music:', err);
+            });
+        }
+    }
+    
     if (gameState === 'start') {
         if (gameMode === 'rapidFire') {
             initRapidFireMode();
@@ -1798,6 +1838,25 @@ canvas.addEventListener('click', () => {
 
 // Initialize splash screen
 initSplash();
+
+// Add a one-time listener for any user interaction to start theme music
+let musicStarted = false;
+const startThemeMusic = () => {
+    if (!musicStarted && (gameState === 'splash' || gameState === 'modeSelect')) {
+        if (splashState.themeAudio && splashState.themeAudio.paused) {
+            splashState.themeAudio.play().then(() => {
+                musicStarted = true;
+                console.log('Theme music started');
+            }).catch(err => {
+                console.log('Theme music play failed:', err);
+            });
+        }
+    }
+};
+
+// Listen for any interaction to start music
+document.addEventListener('click', startThemeMusic, { once: false });
+document.addEventListener('keydown', startThemeMusic, { once: false });
 
 // Start game loop
 gameLoop();
