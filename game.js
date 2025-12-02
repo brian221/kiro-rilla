@@ -6,7 +6,7 @@ const GOO_SPEED = 1.5;
 const WINS_NEEDED = 5;
 
 // Game state
-let gameState = 'start';
+let gameState = 'splash';
 let currentPlayer = 1;
 let player1Score = 0;
 let player2Score = 0;
@@ -23,6 +23,15 @@ let shakeAmount = 0;
 let particles = [];
 let playerSplatter = null;
 
+// Splash screen state
+let splashState = {
+    leftKiroY: 0,
+    rightKiroY: 0,
+    bouncePhase: 0,
+    musicLoaded: false,
+    themeAudio: null
+};
+
 // Load Kiro logo
 const kiroLogo = new Image();
 kiroLogo.src = 'kiro-logo.png';
@@ -32,6 +41,112 @@ kiroLogo.onerror = function() {
 
 // Audio context for sound effects
 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+// Load theme music
+function loadThemeMusic() {
+    splashState.themeAudio = new Audio('theme.mp3');
+    splashState.themeAudio.loop = true;
+    splashState.themeAudio.volume = 0.5;
+    
+    splashState.themeAudio.addEventListener('canplaythrough', () => {
+        splashState.musicLoaded = true;
+        // Auto-play music when loaded (may require user interaction in some browsers)
+        splashState.themeAudio.play().catch(err => {
+            console.log('Audio autoplay prevented by browser:', err);
+        });
+    });
+    
+    splashState.themeAudio.addEventListener('error', (e) => {
+        console.log('Failed to load theme music:', e);
+        splashState.musicLoaded = false;
+    });
+}
+
+// Initialize splash screen
+function initSplash() {
+    splashState.bouncePhase = 0;
+    splashState.leftKiroY = 0;
+    splashState.rightKiroY = 0;
+    loadThemeMusic();
+}
+
+// Update splash animation
+function updateSplashAnimation() {
+    splashState.bouncePhase += 0.05;
+    
+    // Use sine wave for bouncing motion
+    const bounceAmount = Math.sin(splashState.bouncePhase) * 20;
+    splashState.leftKiroY = bounceAmount;
+    splashState.rightKiroY = Math.sin(splashState.bouncePhase + Math.PI) * 20; // Offset for opposite bounce
+}
+
+// Draw splash screen
+function drawSplashScreen() {
+    // Clear with sky blue background
+    ctx.fillStyle = '#87CEEB';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw game title at top
+    ctx.fillStyle = '#790ECB';
+    ctx.font = 'bold 72px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('GORILLA KIRO', canvas.width / 2, 120);
+    
+    // Draw subtitle
+    ctx.fillStyle = 'white';
+    ctx.font = '24px Arial';
+    ctx.fillText('Enhanced Edition', canvas.width / 2, 160);
+    
+    // Draw bouncing Kiro sprites
+    const leftKiroX = canvas.width / 4;
+    const rightKiroX = (canvas.width * 3) / 4;
+    const kiroBaseY = canvas.height / 2;
+    const kiroSize = 80;
+    
+    // Left Kiro (facing right)
+    if (kiroLogo.complete && kiroLogo.naturalWidth > 0) {
+        ctx.save();
+        ctx.translate(leftKiroX, kiroBaseY + splashState.leftKiroY);
+        ctx.drawImage(kiroLogo, -kiroSize / 2, -kiroSize / 2, kiroSize, kiroSize);
+        ctx.restore();
+    } else {
+        // Fallback colored rectangle
+        ctx.fillStyle = '#790ECB';
+        ctx.fillRect(leftKiroX - kiroSize / 2, kiroBaseY + splashState.leftKiroY - kiroSize / 2, kiroSize, kiroSize);
+    }
+    
+    // Right Kiro (facing left - flipped)
+    if (kiroLogo.complete && kiroLogo.naturalWidth > 0) {
+        ctx.save();
+        ctx.translate(rightKiroX, kiroBaseY + splashState.rightKiroY);
+        ctx.scale(-1, 1); // Flip horizontally
+        ctx.drawImage(kiroLogo, -kiroSize / 2, -kiroSize / 2, kiroSize, kiroSize);
+        ctx.restore();
+    } else {
+        // Fallback colored rectangle
+        ctx.fillStyle = '#a855f7';
+        ctx.fillRect(rightKiroX - kiroSize / 2, kiroBaseY + splashState.rightKiroY - kiroSize / 2, kiroSize, kiroSize);
+    }
+    
+    // Draw "Press Space to Begin" text
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 32px Arial';
+    ctx.textAlign = 'center';
+    
+    // Pulsing effect for the text
+    const pulseAlpha = 0.5 + Math.sin(frameCount * 0.1) * 0.5;
+    ctx.globalAlpha = pulseAlpha;
+    ctx.fillText('Press Space to Begin', canvas.width / 2, canvas.height - 100);
+    ctx.globalAlpha = 1.0;
+}
+
+// Cleanup splash screen
+function cleanupSplash() {
+    if (splashState.themeAudio) {
+        splashState.themeAudio.pause();
+        splashState.themeAudio.currentTime = 0;
+    }
+}
 
 // Sound effect functions
 function playThrowSound() {
@@ -555,6 +670,12 @@ function gameLoop() {
         updateGoo();
     }
     
+    // Update and draw splash screen
+    if (gameState === 'splash') {
+        updateSplashAnimation();
+        drawSplashScreen();
+    }
+    
     // Draw overlays
     if (gameState === 'start') {
         drawStartScreen();
@@ -592,7 +713,14 @@ document.addEventListener('keydown', (e) => {
     if (e.code === 'Space') {
         e.preventDefault();
         
-        if (gameState === 'start') {
+        if (gameState === 'splash') {
+            cleanupSplash();
+            // TODO: Transition to modeSelect when task 2 is implemented
+            // For now, go directly to start screen
+            generateBuildings();
+            initializePlayers();
+            gameState = 'start';
+        } else if (gameState === 'start') {
             initGame();
         } else if (gameState === 'gameOver') {
             player1Score = 0;
@@ -622,9 +750,8 @@ canvas.addEventListener('click', () => {
     }
 });
 
-// Initialize buildings and players for start screen
-generateBuildings();
-initializePlayers();
+// Initialize splash screen
+initSplash();
 
 // Start game loop
 gameLoop();
