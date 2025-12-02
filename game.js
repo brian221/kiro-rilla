@@ -7,7 +7,7 @@ const WINS_NEEDED = 5;
 const GOO_RADIUS = 10.4; // 30% bigger than original 8px (8 * 1.3 = 10.4)
 
 // Game state
-let gameState = 'splash';
+let gameState = 'preload'; // Start with preload screen before splash
 let gameMode = 'turnBased'; // 'turnBased' or 'rapidFire'
 let currentPlayer = 1;
 let player1Score = 0;
@@ -72,6 +72,12 @@ let splashState = {
     bouncePhase: 0,
     musicLoaded: false,
     themeAudio: null
+};
+
+// Preload screen state
+let preloadState = {
+    fadeProgress: 0,
+    maxFade: 1.0
 };
 
 // Game music state
@@ -188,6 +194,36 @@ function playWinnerSound() {
             console.log('Failed to play winner sound:', err);
         });
     }
+}
+
+// Update preload screen fade-in
+function updatePreloadScreen() {
+    if (preloadState.fadeProgress < preloadState.maxFade) {
+        preloadState.fadeProgress += 0.02; // Slow fade in
+    }
+}
+
+// Draw preload screen
+function drawPreloadScreen() {
+    // Clear with black background
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Apply fade-in effect
+    ctx.globalAlpha = preloadState.fadeProgress;
+    
+    // Draw "Press Any Key to Start" text
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 32px "Righteous", cursive';
+    ctx.textAlign = 'center';
+    ctx.fillText('Press Any Key to Start', canvas.width / 2, canvas.height / 2);
+    
+    // Draw subtitle hint
+    ctx.fillStyle = '#790ECB';
+    ctx.font = '18px "Righteous", cursive';
+    ctx.fillText('Click or tap anywhere', canvas.width / 2, canvas.height / 2 + 50);
+    
+    ctx.globalAlpha = 1.0;
 }
 
 // Initialize splash screen
@@ -1532,6 +1568,12 @@ function gameLoop() {
         updateHitFeedback();
     }
     
+    // Update and draw preload screen
+    if (gameState === 'preload') {
+        updatePreloadScreen();
+        drawPreloadScreen();
+    }
+    
     // Update and draw splash screen
     if (gameState === 'splash') {
         updateSplashAnimation();
@@ -1779,21 +1821,35 @@ function handleRapidFireInput(playerNum) {
 
 // Event listeners
 document.addEventListener('keydown', (e) => {
+    // Handle preload screen - any key advances
+    if (gameState === 'preload') {
+        e.preventDefault();
+        gameState = 'splash';
+        initSplash(); // Initialize splash screen and load audio
+        updateButtonVisibility();
+        return;
+    }
+    
+    // Handle splash screen - any key advances to mode select
+    if (gameState === 'splash') {
+        e.preventDefault();
+        // Try to play theme music on user interaction if not already playing
+        if (splashState.themeAudio && splashState.themeAudio.paused) {
+            splashState.themeAudio.play().catch(err => {
+                console.log('Failed to play theme music:', err);
+            });
+        }
+        playSelectSound(); // Play select sound
+        // Don't cleanup splash yet - keep theme music playing
+        gameState = 'modeSelect';
+        updateButtonVisibility();
+        return;
+    }
+    
     if (e.code === 'Space') {
         e.preventDefault();
         
-        if (gameState === 'splash') {
-            // Try to play theme music on user interaction if not already playing
-            if (splashState.themeAudio && splashState.themeAudio.paused) {
-                splashState.themeAudio.play().catch(err => {
-                    console.log('Failed to play theme music:', err);
-                });
-            }
-            playSelectSound(); // Play select sound
-            // Don't cleanup splash yet - keep theme music playing
-            gameState = 'modeSelect';
-            updateButtonVisibility();
-        } else if (gameState === 'start') {
+        if (gameState === 'start') {
             if (gameMode === 'rapidFire') {
                 initRapidFireMode();
             } else {
@@ -1858,9 +1914,83 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-canvas.addEventListener('click', () => {
-    // Try to play theme music on first click if on splash or mode select screen
-    if (gameState === 'splash' || gameState === 'modeSelect') {
+canvas.addEventListener('click', (e) => {
+    // Handle preload screen click
+    if (gameState === 'preload') {
+        gameState = 'splash';
+        initSplash();
+        updateButtonVisibility();
+        return;
+    }
+    
+    // Handle splash screen click - advance to mode select
+    if (gameState === 'splash') {
+        if (splashState.themeAudio && splashState.themeAudio.paused) {
+            splashState.themeAudio.play().catch(err => {
+                console.log('Failed to play theme music:', err);
+            });
+        }
+        playSelectSound();
+        gameState = 'modeSelect';
+        updateButtonVisibility();
+        return;
+    }
+    
+    // Handle mode selection screen clicks
+    if (gameState === 'modeSelect') {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const clickX = (e.clientX - rect.left) * scaleX;
+        const clickY = (e.clientY - rect.top) * scaleY;
+        
+        // Mode selection box dimensions (same as in drawModeSelectScreen)
+        const boxWidth = 300;
+        const boxHeight = 150;
+        const spacing = 50;
+        const leftBoxX = canvas.width / 2 - boxWidth - spacing / 2;
+        const rightBoxX = canvas.width / 2 + spacing / 2;
+        const boxY = canvas.height / 2 - boxHeight / 2;
+        
+        // Check if clicked on Turn Based box (left)
+        if (clickX >= leftBoxX && clickX <= leftBoxX + boxWidth &&
+            clickY >= boxY && clickY <= boxY + boxHeight) {
+            playSelectSound();
+            cleanupSplash();
+            gameMode = 'turnBased';
+            selectMapScale();
+            generateBuildings();
+            initializePlayers();
+            gameState = 'start';
+            updateButtonVisibility();
+            return;
+        }
+        
+        // Check if clicked on Rapid Fire box (right)
+        if (clickX >= rightBoxX && clickX <= rightBoxX + boxWidth &&
+            clickY >= boxY && clickY <= boxY + boxHeight) {
+            playSelectSound();
+            cleanupSplash();
+            gameMode = 'rapidFire';
+            selectMapScale();
+            generateBuildings();
+            initializePlayers();
+            gameState = 'start';
+            updateButtonVisibility();
+            return;
+        }
+        
+        // Try to play theme music on click
+        if (splashState.themeAudio && splashState.themeAudio.paused) {
+            splashState.themeAudio.play().catch(err => {
+                console.log('Failed to play theme music:', err);
+            });
+        }
+        return;
+    }
+    
+    // Try to play theme music on first click if on splash screen
+    if (gameState === 'splash') {
         if (splashState.themeAudio && splashState.themeAudio.paused) {
             splashState.themeAudio.play().catch(err => {
                 console.log('Failed to play theme music:', err);
@@ -1887,8 +2017,8 @@ canvas.addEventListener('click', () => {
     }
 });
 
-// Initialize splash screen
-initSplash();
+// Don't initialize splash screen yet - wait for preload interaction
+// initSplash() will be called when user interacts with preload screen
 
 // Set initial button visibility
 updateButtonVisibility();
@@ -1896,6 +2026,14 @@ updateButtonVisibility();
 // Add a one-time listener for any user interaction to start theme music
 let musicStarted = false;
 const startThemeMusic = () => {
+    // Handle preload screen transition
+    if (gameState === 'preload') {
+        gameState = 'splash';
+        initSplash();
+        updateButtonVisibility();
+        return;
+    }
+    
     if (!musicStarted && (gameState === 'splash' || gameState === 'modeSelect')) {
         if (splashState.themeAudio && splashState.themeAudio.paused) {
             splashState.themeAudio.play().then(() => {
@@ -1908,9 +2046,10 @@ const startThemeMusic = () => {
     }
 };
 
-// Listen for any interaction to start music
+// Listen for any interaction to start music and handle preload
 document.addEventListener('click', startThemeMusic, { once: false });
 document.addEventListener('keydown', startThemeMusic, { once: false });
+document.addEventListener('touchstart', startThemeMusic, { once: false });
 
 // Touch button event listeners - handle both click and touch events
 const handleP1Throw = (e) => {
