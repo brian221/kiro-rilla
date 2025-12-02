@@ -25,7 +25,13 @@ body {
 #gameCanvas {
     border: 3px solid #790ECB;
     background-color: #1a1a1a;
-    box-shadow: 0 0 20px rgba(121, 14, 203, 0.3);
+    box-shadow: 0 0 30px rgba(121, 14, 203, 0.4), 0 0 60px rgba(121, 14, 203, 0.2);
+    border-radius: 4px;
+    transition: box-shadow 0.3s ease;
+}
+
+#gameCanvas:hover {
+    box-shadow: 0 0 40px rgba(121, 14, 203, 0.6), 0 0 80px rgba(121, 14, 203, 0.3);
 }
 
 #score-display {
@@ -33,17 +39,36 @@ body {
     justify-content: space-between;
     width: 800px;
     padding: 15px 30px;
-    background-color: #2a2a2a;
+    background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
     border: 2px solid #790ECB;
     border-radius: 8px;
     font-size: 20px;
     font-weight: bold;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+#score-display:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 #player1-score {
     color: #790ECB;
+    text-shadow: 0 0 10px rgba(121, 14, 203, 0.5);
+    transition: all 0.3s ease;
+}
+
+#player1-score:hover {
+    text-shadow: 0 0 15px rgba(121, 14, 203, 0.8);
 }
 
 #player2-score {
     color: #a855f7;
+    text-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+    transition: all 0.3s ease;
+}
+
+#player2-score:hover {
+    text-shadow: 0 0 15px rgba(168, 85, 247, 0.8);
 }

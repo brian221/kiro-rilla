@@ -96,7 +96,8 @@ kiroLogo.onerror = function() {
 };
 
 // Audio context for sound effects
-const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+const audioContext = new AudioContextClass();
 
 // Load theme music
 function loadThemeMusic() {
@@ -411,18 +412,19 @@ function selectMapScale() {
 }
 
 // Generate random buildings with scale parameter
-function generateBuildings(scale = mapScale) {
+function generateBuildings() {
     buildings = [];
     const numBuildings = 8;
     const buildingWidth = canvas.width / numBuildings;
     
+    // First pass: generate all buildings with random heights
     for (let i = 0; i < numBuildings; i++) {
         // Use scaled min/max values for height calculation
-        const heightRange = scale.buildingHeightMax - scale.buildingHeightMin;
-        const height = Math.random() * heightRange + scale.buildingHeightMin;
+        const heightRange = mapScale.buildingHeightMax - mapScale.buildingHeightMin;
+        const height = Math.random() * heightRange + mapScale.buildingHeightMin;
         
         // Apply scale factor to building width (affects visual appearance)
-        const scaledWidth = buildingWidth * scale.factor;
+        const scaledWidth = buildingWidth * mapScale.factor;
         
         const windows = [];
         
@@ -448,6 +450,66 @@ function generateBuildings(scale = mapScale) {
             destroyedChunks: []
         });
     }
+    
+    // Second pass: ensure 45-degree clearance for players
+    // Player 1 is on building 0, Player 2 is on building 7
+    const player1BuildingIndex = 0;
+    const player2BuildingIndex = 7;
+    
+    // Calculate maximum allowed height for adjacent buildings to allow 45-degree shot
+    // At 45 degrees, for every unit of horizontal distance, the projectile rises 1 unit
+    const player1Height = buildings[player1BuildingIndex].height;
+    const player2Height = buildings[player2BuildingIndex].height;
+    
+    // For Player 1 (shooting right), check buildings 1 and 2
+    for (let i = 1; i <= 2; i++) {
+        const horizontalDistance = (i - player1BuildingIndex) * buildingWidth;
+        const maxAllowedHeight = player1Height - horizontalDistance; // 45-degree line
+        
+        if (buildings[i].height > maxAllowedHeight) {
+            // Reduce building height to allow clearance
+            const newHeight = Math.max(mapScale.buildingHeightMin, maxAllowedHeight * 0.9); // 90% for safety margin
+            buildings[i].height = newHeight;
+            buildings[i].y = canvas.height - newHeight;
+            
+            // Regenerate windows for new height
+            buildings[i].windows = [];
+            for (let y = 20; y < newHeight - 20; y += 30) {
+                for (let x = 15; x < buildings[i].visualWidth - 15; x += 25) {
+                    buildings[i].windows.push({
+                        x: x,
+                        y: y,
+                        lit: Math.random() > 0.7
+                    });
+                }
+            }
+        }
+    }
+    
+    // For Player 2 (shooting left), check buildings 6 and 5
+    for (let i = 6; i >= 5; i--) {
+        const horizontalDistance = (player2BuildingIndex - i) * buildingWidth;
+        const maxAllowedHeight = player2Height - horizontalDistance; // 45-degree line
+        
+        if (buildings[i].height > maxAllowedHeight) {
+            // Reduce building height to allow clearance
+            const newHeight = Math.max(mapScale.buildingHeightMin, maxAllowedHeight * 0.9); // 90% for safety margin
+            buildings[i].height = newHeight;
+            buildings[i].y = canvas.height - newHeight;
+            
+            // Regenerate windows for new height
+            buildings[i].windows = [];
+            for (let y = 20; y < newHeight - 20; y += 30) {
+                for (let x = 15; x < buildings[i].visualWidth - 15; x += 25) {
+                    buildings[i].windows.push({
+                        x: x,
+                        y: y,
+                        lit: Math.random() > 0.7
+                    });
+                }
+            }
+        }
+    }
 }
 
 // Destroy building chunk at impact point
@@ -466,6 +528,10 @@ function destroyBuildingChunk(building, impactX, impactY) {
         width: chunkWidth,
         height: chunkHeight
     });
+    
+    // Add visual polish: create debris particles with Kiro brand colors
+    createParticles(impactX, impactY, '#4a4a4a', 10);
+    createParticles(impactX, impactY, '#790ECB', 5);
 }
 
 // Check if point is within a destroyed chunk
@@ -494,8 +560,8 @@ function checkBuildingCollision(x, y, building) {
     return true; // Point collides with building
 }
 
-// Initialize players on buildings with scale
-function initializePlayers(scale = mapScale) {
+// Initialize players on buildings
+function initializePlayers() {
     // Position players based on scale factor
     // For smaller scales, players are closer; for larger scales, farther apart
     const player1BuildingIndex = 0;
@@ -521,15 +587,15 @@ function initializePlayers(scale = mapScale) {
 function initGame() {
     // Select new map scale at start of each round
     selectMapScale();
-    generateBuildings(mapScale);
-    initializePlayers(mapScale);
+    generateBuildings(); // This creates fresh buildings with empty destroyedChunks arrays
+    initializePlayers();
     goo = null;
     selectingAngle = true;
     angle = 45;
     force = 50;
     particles = [];
     playerSplatter = null;
-    trailSegments = [];
+    trailSegments = []; // Clear trails for new round
     gameState = 'playerTurn';
     
     // Start game music if not already playing
@@ -542,8 +608,8 @@ function initGame() {
 function initRapidFireMode() {
     // Select new map scale at start of each round
     selectMapScale();
-    generateBuildings(mapScale);
-    initializePlayers(mapScale);
+    generateBuildings(); // This creates fresh buildings with empty destroyedChunks arrays
+    initializePlayers();
     
     // Initialize dual-player state
     rapidFireState.player1 = {
@@ -568,7 +634,7 @@ function initRapidFireMode() {
     
     particles = [];
     playerSplatter = null;
-    trailSegments = [];
+    trailSegments = []; // Clear trails for new round
     gameState = 'playerTurn';
     
     // Start game music if not already playing
@@ -578,14 +644,19 @@ function initRapidFireMode() {
 }
 
 // Trail effect system
+const MAX_TRAIL_SEGMENTS = 200; // Performance optimization: limit total trail segments
+
 function addTrailSegment(x, y) {
-    trailSegments.push({
-        x: x,
-        y: y,
-        opacity: 0.8,
-        age: 0,
-        maxAge: 15 + Math.random() * 5 // 15-20 frames
-    });
+    // Only add trail segment if under the limit
+    if (trailSegments.length < MAX_TRAIL_SEGMENTS) {
+        trailSegments.push({
+            x: x,
+            y: y,
+            opacity: 0.8,
+            age: 0,
+            maxAge: 15 + Math.random() * 5 // 15-20 frames
+        });
+    }
 }
 
 function updateTrails() {
@@ -599,10 +670,22 @@ function updateTrails() {
 
 function drawTrails() {
     trailSegments.forEach(segment => {
+        ctx.globalAlpha = segment.opacity * 0.6;
+        
+        // Draw outer glow
+        const gradient = ctx.createRadialGradient(segment.x, segment.y, 0, segment.x, segment.y, 8);
+        gradient.addColorStop(0, '#00ff00');
+        gradient.addColorStop(1, 'rgba(0, 255, 0, 0)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(segment.x, segment.y, 8, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Draw core
         ctx.globalAlpha = segment.opacity;
         ctx.fillStyle = '#00ff00';
         ctx.beginPath();
-        ctx.arc(segment.x, segment.y, 6, 0, Math.PI * 2);
+        ctx.arc(segment.x, segment.y, 4, 0, Math.PI * 2);
         ctx.fill();
     });
     ctx.globalAlpha = 1.0;
@@ -696,9 +779,15 @@ function drawHitFeedback() {
 }
 
 // Create particle explosion
+const MAX_PARTICLES = 300; // Performance optimization: limit total particles
+
 function createParticles(x, y, color, count = 20) {
-    for (let i = 0; i < count; i++) {
-        const angle = (Math.PI * 2 * i) / count;
+    // Only create particles if we're under the limit
+    const availableSlots = MAX_PARTICLES - particles.length;
+    const particlesToCreate = Math.min(count, availableSlots);
+    
+    for (let i = 0; i < particlesToCreate; i++) {
+        const angle = (Math.PI * 2 * i) / particlesToCreate;
         const speed = Math.random() * 3 + 2;
         particles.push({
             x: x,
@@ -1260,11 +1349,8 @@ function updateGoo() {
     if (goo) {
         for (let building of buildings) {
             if (checkBuildingCollision(goo.x, goo.y, building)) {
-                // Destroy building chunk at impact point
+                // Destroy building chunk at impact point (includes particle effects)
                 destroyBuildingChunk(building, goo.x, goo.y);
-                
-                // Create building hit particles
-                createParticles(goo.x, goo.y, '#666666', 15);
                 
                 // Play hit effect sound
                 playHitEffectSound();
@@ -1525,11 +1611,8 @@ function updateRapidFireProjectiles() {
         // Check collision with buildings
         for (let building of buildings) {
             if (checkBuildingCollision(projectile.x, projectile.y, building)) {
-                // Destroy building chunk at impact point
+                // Destroy building chunk at impact point (includes particle effects)
                 destroyBuildingChunk(building, projectile.x, projectile.y);
-                
-                // Create building hit particles
-                createParticles(projectile.x, projectile.y, '#666666', 15);
                 
                 // Play hit effect sound
                 playHitEffectSound();
@@ -1678,16 +1761,16 @@ document.addEventListener('keydown', (e) => {
             playSelectSound(); // Play select sound
             gameMode = 'turnBased';
             selectMapScale();
-            generateBuildings(mapScale);
-            initializePlayers(mapScale);
+            generateBuildings();
+            initializePlayers();
             gameState = 'start';
         } else if (e.code === 'Digit2' || e.code === 'Numpad2') {
             e.preventDefault();
             playSelectSound(); // Play select sound
             gameMode = 'rapidFire';
             selectMapScale();
-            generateBuildings(mapScale);
-            initializePlayers(mapScale);
+            generateBuildings();
+            initializePlayers();
             gameState = 'start';
         }
     }
