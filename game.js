@@ -1611,12 +1611,8 @@ function updateRapidFireProjectiles() {
                         opacity: 1.0
                     };
                     
-                    // In rapid fire mode, check if game is over but don't pause
-                    if (player1Score >= WINS_NEEDED || player2Score >= WINS_NEEDED) {
-                        // Trigger hit feedback screen for game over
-                        triggerHitFeedback(playerIndex);
-                    }
-                    // If not game over, just continue playing in rapid fire mode
+                    // Trigger hit feedback screen with 3-second delay (works for both modes)
+                    triggerHitFeedback(playerIndex);
                     
                     // Mark projectile for removal
                     projectilesToRemove.push(i);
